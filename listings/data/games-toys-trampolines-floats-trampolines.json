@@ -1,0 +1,25 @@
+{
+  "patterns": [
+    {
+      "url": "https://sports-dev.barca.group/browse/promotions/games-toys/trampolines-floats/trampolines"
+    }
+  ],
+  "name": "Trampolines",
+  "pageRules": [
+    {
+      "name": "Include product cat_slug contains games-toys/trampolines-floats/trampolines",
+      "filters": [
+        {
+          "fieldName": "cat_slug",
+          "operator": "contains",
+          "value": {
+            "type": "array",
+            "values": [
+              "games-toys/trampolines-floats/trampolines"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

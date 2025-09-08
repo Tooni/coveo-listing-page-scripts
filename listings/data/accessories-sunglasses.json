@@ -1,0 +1,25 @@
+{
+    "patterns": [
+        {
+            "url": "https://sports-dev.barca.group/browse/promotions/accessories/sunglasses"
+        }
+    ],
+    "name": "Sunglasses",
+    "pageRules": [
+        {
+            "name": "Include product cat_slug contains accessories/sunglasses",
+            "filters": [
+                {
+                    "fieldName": "cat_slug",
+                    "operator": "contains",
+                    "value": {
+                        "type": "array",
+                        "values": [
+                            "accessories/sunglasses"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}
