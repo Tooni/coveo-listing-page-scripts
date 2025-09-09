@@ -1,0 +1,13 @@
+{
+    "ORG_ID": "barcasportsmcy01fvu",
+    "TRACKING_ID": "commerce",
+    "ACCESS_TOKEN": "insert_your_access_token_here",
+    "BASE_URL": "https://platformdev.cloud.coveo.com/",
+    "LOCALES": [
+        {
+          "language": "en",
+          "currency": "usd",
+          "country": "us"
+        }
+    ]
+}

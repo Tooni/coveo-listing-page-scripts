@@ -3,12 +3,34 @@ import json
 import os
 import requests
 import sys
+import argparse
 
-ORG_ID = 'barcasportsmcy01fvu'
-TRACKING_ID = 'commerce'
-BASE_URL = 'https://platformdev.cloud.coveo.com/'
-ACCESS_TOKEN = 'jjjjjjjjj-eeee-ffff-gggg-hhhhhhhhhhhh'
-LISTINGS_ENDPOINT = 'rest/organizations/{org_id}/commerce/unstable/v2/listings/pages'
+# Load configuration from config.json
+# Expects ORG_ID, TRACKING_ID, BASE_URL, and ACCESS_TOKEN to be defined in the JSON file
+try:
+    with open('config.json') as f:
+        config = json.load(f)
+except Exception as e:
+    print(f"Error loading config.json, please ensure the file exists and is valid JSON. Check config.sample.json for reference.")
+    sys.exit(1)
+
+ORG_ID = config['ORG_ID']
+TRACKING_ID = config['TRACKING_ID']
+BASE_URL = config['BASE_URL']
+ACCESS_TOKEN = config['ACCESS_TOKEN']
+LOCALES = config['LOCALES'] if 'LOCALES' in config else None
+
+if (not ORG_ID or not TRACKING_ID or not BASE_URL or not ACCESS_TOKEN):
+    print("Please set ORG_ID, TRACKING_ID, BASE_URL, and ACCESS_TOKEN in config.json")
+    sys.exit(1)
+
+# Command-line argument parsing, --command or -c is required to specify the command
+# example usage: python crud_listing_pages.py --command create
+parser = argparse.ArgumentParser()
+parser.add_argument('--command', '-c', required=True, help='Command to perform')
+args = parser.parse_args()
+
+LISTINGS_ENDPOINT = f'rest/organizations/{ORG_ID}/commerce/unstable/v2/listings/pages'
 SCRIPT_DIRECTORY = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 BASIC_PAGE_RULE = {
@@ -27,10 +49,9 @@ BASIC_PAGE_RULE = {
     ]
 }
 
-
 def handle_response(response):
     if response.status_code == 204:
-        print("No Content")
+        print("Done!")
     elif response.ok:
         print(response.json())
     elif response.status_code == 412:
@@ -40,28 +61,48 @@ def handle_response(response):
         print(response.json())
         response.raise_for_status()
 
+def write_ids_to_file(ids):
+    try:
+        with open(f'{SCRIPT_DIRECTORY}/temp/ids.json', "w") as f:
+            json.dump(ids, f)
+    except Exception as e:
+        print(f"Error writing IDs to file: {e}")
 
 def create_from_json():
     listing_pages = []
-    for filename in os.listdir(f'{SCRIPT_DIRECTORY}/data'):
-        listing_page = json.load(
-            open(f'{SCRIPT_DIRECTORY}/data/{filename}'))
-        listing_page['trackingId'] = TRACKING_ID
-        listing_pages.append(listing_page)
+    try:
+        for filename in os.listdir(f'{SCRIPT_DIRECTORY}/data'):
+            listing_page = json.load(
+                open(f'{SCRIPT_DIRECTORY}/data/{filename}'))
+            listing_page['trackingId'] = TRACKING_ID
+            if LOCALES and len(LOCALES) > 0:
+                for page in listing_page['pageRules']:
+                    page['locales'] = LOCALES
+            print(listing_page)
+            listing_pages.append(listing_page)
+        url = BASE_URL + f'{LISTINGS_ENDPOINT}/bulk-create'.format(org_id=ORG_ID)
 
-    url = BASE_URL + f'{LISTINGS_ENDPOINT}/bulk-create'.format(org_id=ORG_ID)
-    response = requests.post(
-        url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'}, json=listing_pages)
+        response = requests.post(
+            url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'}, json=listing_pages)
 
-    handle_response(response)
-
+        if response.ok:
+            data = response.json()
+            ids = [item['id'] for item in data]
+            write_ids_to_file(ids)
+        else:
+            handle_response(response)
+    except Exception as e:
+        print(f"Error while creating listing pages from JSON files: {e}")
 
 def delete_by_ids(*ids):
-    url = BASE_URL + f'{LISTINGS_ENDPOINT}/bulk-delete'.format(org_id=ORG_ID)
-    response = requests.post(
-        url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'}, json=ids)
+    try:
+        url = BASE_URL + f'{LISTINGS_ENDPOINT}/bulk-delete'.format(org_id=ORG_ID)
+        response = requests.post(
+            url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'}, json=ids)
 
-    handle_response(response)
+        handle_response(response)
+    except Exception as e:
+        print(f"Error while deleting listing pages by IDs: {e}")
 
 
 def delete_all_for_tracking_id():
@@ -98,8 +139,16 @@ def update_all_with_same_page_rule():
 
     handle_response(response)
 
-
-# create_from_json()
-# delete_all_for_tracking_id()
-# update_all_with_same_page_rule()
-# delete_by_ids("0b54d369-4078-4611-a185-eda1fb46fcdb", "3e78bb88-28d4-47a3-8e65-e15c69e13deb")
+if args.command == "create":
+    create_from_json()
+elif args.command == "delete_all":
+    delete_all_for_tracking_id()
+elif args.command == "update_all":
+    update_all_with_same_page_rule()
+elif args.command == "delete_by_ids":
+    with open(os.path.join(SCRIPT_DIRECTORY, 'temp', 'ids.json')) as f:
+        ids = json.load(f)
+    delete_by_ids(*ids)
+    write_ids_to_file([])
+else:
+    print("Unknown command")
