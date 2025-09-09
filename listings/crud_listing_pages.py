@@ -78,7 +78,6 @@ def create_from_json():
             if LOCALES and len(LOCALES) > 0:
                 for page in listing_page['pageRules']:
                     page['locales'] = LOCALES
-            print(listing_page)
             listing_pages.append(listing_page)
         url = BASE_URL + f'{LISTINGS_ENDPOINT}/bulk-create'.format(org_id=ORG_ID)
 
