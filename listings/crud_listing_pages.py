@@ -68,6 +68,28 @@ def write_ids_to_file(ids):
     except Exception as e:
         print(f"Error writing IDs to file: {e}")
 
+def get_all_for_tracking_id():
+    items = []
+    page = 0
+    
+    while True:
+        url = BASE_URL + \
+            f'{LISTINGS_ENDPOINT}?trackingId={TRACKING_ID}&page={page}&perPage=100'.format(
+                org_id=ORG_ID)
+        response = requests.get(
+            url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'})
+
+        if response.ok:
+            data = response.json()
+            items.extend(data.get('items', []))
+            if page >= data.get('totalPages', 0) - 1:
+                break
+            page += 1
+        else:
+            handle_response(response)
+            break
+    return items
+
 def create_from_json():
     listing_pages = []
     try:
@@ -105,18 +127,10 @@ def delete_by_ids(*ids):
 
 
 def delete_all_for_tracking_id():
-    url = BASE_URL + \
-        f'{LISTINGS_ENDPOINT}?trackingId={TRACKING_ID}&page=0&perPage=100'.format(
-            org_id=ORG_ID)
-    response = requests.get(
-        url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'})
-
-    if response.ok:
-        listing_pages = response.json().get('items', [])
-        ids = [listing_page['id'] for listing_page in listing_pages]
-
+    items = get_all_for_tracking_id()
+    if items:
+        ids = [item['id'] for item in items]
         delete_by_ids(*ids)
-
 
 def update_all_with_same_page_rule():
     url = BASE_URL + \
@@ -140,6 +154,9 @@ def update_all_with_same_page_rule():
 
 if args.command == "create":
     create_from_json()
+elif args.command == "list":
+    names = get_all_for_tracking_id()
+    print(json.dumps(names, indent=2))
 elif args.command == "delete_all":
     delete_all_for_tracking_id()
 elif args.command == "update_all":
