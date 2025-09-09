@@ -2,7 +2,7 @@ The `crud_listing_pages.py` will be used to create/update/delete listing pages u
 
 1) Please clone `config.sample.json` file into `config.json` and populate the following parameters: ORG_ID, TRACKING_ID, ACCESS_TOKEN, BASE_URL, and LOCALES.
 
-    *LOCALES paramter is optional*
+    *LOCALES parameter is optional*
 
 2) To run the script you have to provide the command name using the **--command** or **-c** parameter. 
 
