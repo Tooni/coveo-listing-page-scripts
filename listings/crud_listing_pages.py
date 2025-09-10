@@ -157,8 +157,8 @@ if args.command == "create":
 elif args.command == "list":
     names = get_all_for_tracking_id()
     print(json.dumps(names, indent=2))
-elif args.command == "delete_all":
-    delete_all_for_tracking_id()
+# elif args.command == "delete_all":
+#     delete_all_for_tracking_id()
 elif args.command == "update_all":
     update_all_with_same_page_rule()
 elif args.command == "delete_by_ids":
