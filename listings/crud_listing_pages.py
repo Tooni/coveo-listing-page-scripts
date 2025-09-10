@@ -110,8 +110,7 @@ def create_from_json():
             data = response.json()
             ids = [item['id'] for item in data]
             write_ids_to_file(ids)
-        else:
-            handle_response(response)
+        handle_response(response)
     except Exception as e:
         print(f"Error while creating listing pages from JSON files: {e}")
 
