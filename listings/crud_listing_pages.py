@@ -51,7 +51,7 @@ BASIC_PAGE_RULE = {
 
 def handle_response(response):
     if response.status_code == 204:
-        print("Done!")
+        print("Delete Succeeded")
     elif response.ok:
         print(response.json())
     elif response.status_code == 412:
