@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--command', '-c', required=True, help='Command to perform')
 args = parser.parse_args()
 
-LISTINGS_ENDPOINT = f'rest/organizations/{ORG_ID}/commerce/unstable/v2/listings/pages'
+LISTINGS_ENDPOINT = f'rest/organizations/{ORG_ID}/commerce/v2/listings/pages'
 SCRIPT_DIRECTORY = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 BASIC_PAGE_RULE = {
@@ -156,8 +156,8 @@ if args.command == "create":
 elif args.command == "list":
     names = get_all_for_tracking_id()
     print(json.dumps(names, indent=2))
-# elif args.command == "delete_all":
-#     delete_all_for_tracking_id()
+elif args.command == "delete_all":
+    delete_all_for_tracking_id()
 elif args.command == "update_all":
     update_all_with_same_page_rule()
 elif args.command == "delete_by_ids":
@@ -166,4 +166,5 @@ elif args.command == "delete_by_ids":
     delete_by_ids(*ids)
     write_ids_to_file([])
 else:
-    print("Unknown command")
+    print("Unknown command\n")
+    print("Available commands are: create, list, update_all, delete_all, delete_by_ids")
