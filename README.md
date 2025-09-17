@@ -13,5 +13,5 @@ Here is the list of supported commands:
 - **list**: list existing listing pages for a specific tracking id
 - **create**: creates listing pages (bulk)
 - **update_all**: updates listing pages with 1 rule (bulk)
-- **delete_all**: deletes all listing pages for a specific tracking id (Currently unavailable)
+- **delete_all**: deletes all listing pages for a specific tracking id
 - **delete_by_ids**: deletes listing pages using provided IDs in temp/ids.json file
