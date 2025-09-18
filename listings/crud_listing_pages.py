@@ -32,24 +32,15 @@ args = parser.parse_args()
 
 LISTINGS_ENDPOINT = f'rest/organizations/{ORG_ID}/commerce/v2/listings/pages'
 SCRIPT_DIRECTORY = os.path.dirname(os.path.abspath(sys.argv[0]))
-
-BASIC_PAGE_RULE = {
-    "name": "Include product cat_slug contains games-toys/trampolines-floats/trampolines",
-    "filters": [
-        {
-            "fieldName": "cat_slug",
-            "operator": "contains",
-            "value": {
-                "type": "array",
-                "values": [
-                    "games-toys/trampolines-floats/trampolines"
-                ]
-            }
-        }
-    ]
-}
+UPDATE_PATH = 'update-data/listings.json'
 
 def handle_response(response):
+    """
+    Handle HTTP response and print appropriate messages based on status code.
+    
+    Args:
+        response: HTTP response object from requests
+    """
     if response.status_code == 204:
         print("Delete Succeeded")
     elif response.ok:
@@ -61,14 +52,28 @@ def handle_response(response):
         print(response.json())
         response.raise_for_status()
 
-def write_ids_to_file(ids):
+def write_to_file(content, filepath):
+    """
+    Write JSON content to a file with proper formatting.
+    
+    Args:
+        content: Data to write to file (will be JSON serialized)
+        filepath: Relative path from script directory where to write the file
+    """
     try:
-        with open(f'{SCRIPT_DIRECTORY}/temp/ids.json', "w") as f:
-            json.dump(ids, f)
+        with open(f'{SCRIPT_DIRECTORY}/{filepath}', "w") as f:
+            json.dump(content, f, indent=4)
     except Exception as e:
-        print(f"Error writing IDs to file: {e}")
+        print(f"Error writing to file {filepath}: {e}")
 
 def get_all_for_tracking_id():
+    """
+    Retrieve all listing pages for the configured tracking ID.
+    Handles pagination to get all results across multiple pages.
+    
+    Returns:
+        list: All listing page items found for the tracking ID
+    """
     items = []
     page = 0
     
@@ -91,11 +96,16 @@ def get_all_for_tracking_id():
     return items
 
 def create_from_json():
+    """
+    Create listing pages from JSON files in the create-data directory.
+    Reads all JSON files, adds tracking ID and locales, then bulk creates them.
+    Saves the created listings to update-data/listings.json for future reference.
+    """
     listing_pages = []
     try:
-        for filename in os.listdir(f'{SCRIPT_DIRECTORY}/data'):
+        for filename in os.listdir(f'{SCRIPT_DIRECTORY}/create-data'):
             listing_page = json.load(
-                open(f'{SCRIPT_DIRECTORY}/data/{filename}'))
+                open(f'{SCRIPT_DIRECTORY}/create-data/{filename}'))
             listing_page['trackingId'] = TRACKING_ID
             if LOCALES and len(LOCALES) > 0:
                 for page in listing_page['pageRules']:
@@ -108,14 +118,22 @@ def create_from_json():
 
         if response.ok:
             data = response.json()
-            ids = [item['id'] for item in data]
-            write_ids_to_file(ids)
+            write_to_file(data, UPDATE_PATH)
         handle_response(response)
     except Exception as e:
         print(f"Error while creating listing pages from JSON files: {e}")
 
 def delete_by_ids(*ids):
+    """
+    Delete listing pages by their IDs using bulk delete endpoint.
+    
+    Args:
+        *ids: Variable number of listing page IDs to delete
+    """
     try:
+        if (ids is None or len(ids) == 0):
+            print("No IDs provided for deletion.")
+            return
         url = BASE_URL + f'{LISTINGS_ENDPOINT}/bulk-delete'.format(org_id=ORG_ID)
         response = requests.post(
             url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'}, json=ids)
@@ -126,45 +144,50 @@ def delete_by_ids(*ids):
 
 
 def delete_all_for_tracking_id():
+    """
+    Delete all listing pages associated with the configured tracking ID.
+    First retrieves all pages, then deletes them by their IDs.
+    """
     items = get_all_for_tracking_id()
-    if items:
+    if items and len(items) > 0:
         ids = [item['id'] for item in items]
         delete_by_ids(*ids)
+    else:
+        print("No listings found for deletion.")
 
-def update_all_with_same_page_rule():
-    url = BASE_URL + \
-        f'{LISTINGS_ENDPOINT}?trackingId={TRACKING_ID}&page=0&perPage=100'.format(
-            org_id=ORG_ID)
-    response = requests.get(
-        url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'})
+def update_from_json():
+    """
+    Update listing pages using data from update-data/listings.json.
+    Reads the saved listings file and performs bulk update operation.
+    """
+    listing_pages = json.load(
+                open(f'{SCRIPT_DIRECTORY}/{UPDATE_PATH}'))
 
-    if response.ok:
-        listing_pages = response.json().get('items', [])
-        for listing_page in listing_pages:
-            listing_page['pageRules'] = [BASIC_PAGE_RULE]
+    if not listing_pages or len(listing_pages) == 0:
+        print(f"No listings found in {UPDATE_PATH} for update.")
+        return
+    update_url = BASE_URL + \
+        f'{LISTINGS_ENDPOINT}/bulk-update'.format(org_id=ORG_ID)
+    update_response = requests.put(
+        update_url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'}, json=listing_pages)
+    handle_response(update_response)
 
-        update_url = BASE_URL + \
-            f'{LISTINGS_ENDPOINT}/bulk-update'.format(org_id=ORG_ID)
-        update_response = requests.put(
-            update_url, headers={'Authorization': f'Bearer {ACCESS_TOKEN}'}, json=listing_pages)
-        handle_response(update_response)
-
-    handle_response(response)
-
-if args.command == "create":
-    create_from_json()
-elif args.command == "list":
+if args.command == "list":
     names = get_all_for_tracking_id()
     print(json.dumps(names, indent=2))
+elif args.command == "create":
+    create_from_json()
+elif args.command == "update":
+    update_from_json()
 elif args.command == "delete_all":
     delete_all_for_tracking_id()
-elif args.command == "update_all":
-    update_all_with_same_page_rule()
+    write_to_file([], UPDATE_PATH)
 elif args.command == "delete_by_ids":
-    with open(os.path.join(SCRIPT_DIRECTORY, 'temp', 'ids.json')) as f:
-        ids = json.load(f)
+    with open(os.path.join(SCRIPT_DIRECTORY, UPDATE_PATH)) as f:
+        items = json.load(f)
+    ids = [item['id'] for item in items]
     delete_by_ids(*ids)
-    write_ids_to_file([])
+    write_to_file([], UPDATE_PATH)
 else:
     print("Unknown command\n")
     print("Available commands are: create, list, update_all, delete_all, delete_by_ids")
