@@ -1,3 +1,5 @@
+Copied from the commerce-tools repo to make it publicly available: https://github.com/coveo-platform/commerce-tools/pull/156 
+
 The `crud_listing_pages.py` will be used to create/read/update/delete listing pages using the new public endpoints
 
 1) Please clone `config.sample.json` file into `config.json` and populate the following parameters: ORG_ID, TRACKING_ID, ACCESS_TOKEN, BASE_URL, and LOCALES.
